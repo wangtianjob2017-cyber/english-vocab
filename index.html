@@ -566,6 +566,10 @@ input[type="range"]::-webkit-slider-thumb {
             <input type="checkbox" id="dictStarOnly" style="width:18px;height:18px">
             <span>只听取星标单词</span>
           </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.95rem">
+            <input type="checkbox" id="dictPhraseOnly" style="width:18px;height:18px">
+            <span>只听写短语（跳过单词和专有名词）</span>
+          </label>
         </div>
       </div>
       <p style="color:var(--text-secondary);font-size:1rem;text-align:center" id="dictStatus">准备听写，随机抽取 15 个单词</p>
@@ -3873,7 +3877,7 @@ const VOCAB_DATA = {
   }
 
   // ===== Dictation Mode =====
-  let dictWordCount = 15, dictSeqMode = false, dictStarOnly = false;
+  let dictWordCount = 15, dictSeqMode = false, dictStarOnly = false, dictPhraseOnly = false;
   let dictationWords = [], dictationActive = false, dictGridEls = [];
 
   function getDictCounts() {
@@ -3904,6 +3908,12 @@ const VOCAB_DATA = {
     // Star only
     $('#dictStarOnly').addEventListener('change', () => {
       dictStarOnly = $('#dictStarOnly').checked;
+      if (dictStarOnly) { dictPhraseOnly = false; $('#dictPhraseOnly').checked = false; }
+      updateDictStatus();
+    });
+    $('#dictPhraseOnly').addEventListener('change', () => {
+      dictPhraseOnly = $('#dictPhraseOnly').checked;
+      if (dictPhraseOnly) { dictStarOnly = false; $('#dictStarOnly').checked = false; }
       updateDictStatus();
     });
     // Close button
@@ -3919,11 +3929,13 @@ const VOCAB_DATA = {
     const total = Object.values(counts).reduce((s, c) => s + c, 0);
     const label = dictSeqMode ? '按顺序' : '随机';
     const star = dictStarOnly ? '星标' : '';
-    dictStatus.textContent = `准备听写：${star}${label}模式，${dictWordCount} 个单词（累计 ${total} 次）`;
+    const phrase = dictPhraseOnly ? '短语' : '';
+    dictStatus.textContent = `准备听写：${phrase}${star}${label}模式，${dictWordCount} 个单词（累计 ${total} 次）`;
   }
 
   function getDictPool() {
     let pool = playlist.filter(w => !w.isProper);
+    if (dictPhraseOnly) pool = pool.filter(w => w.en.includes(' ') && w.en.split(/\s+/).length >= 2);
     if (dictStarOnly) pool = pool.filter(w => favorites.has(w.en.toLowerCase()));
     return pool.length > 0 ? pool : playlist;
   }
