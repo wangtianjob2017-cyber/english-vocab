@@ -2093,7 +2093,13 @@ input[type="range"]::-webkit-slider-thumb {
       gState.words=[baseWords];gState.matched=[0];
       const cnS=shuf(baseWords.map(w=>w.zh));
       $('#gameBoard').innerHTML=`<div style="display:flex;justify-content:center"><div style="flex:1;max-width:520px">${renderPlayerBoard(baseWords,0,'🎯 连连看',cnS)}</div></div>`;
-      $('#gameTimer').style.display='none';
+      // Single player: start timer
+      $('#gameTimer').style.display='';$('#gameTimer').textContent='⏱ 0.0s';
+      const soloStart=Date.now();
+      gState.timer=setInterval(()=>{
+        gState.elapsed=(Date.now()-soloStart)/1000;
+        $('#gameTimer').textContent='⏱ '+gState.elapsed.toFixed(1)+'s';
+      },100);
     }
     $('#gameInfo').textContent=pk?'同一组单词，各自匹配，先完成者胜！':'点击英文单词 → 再点对应中文释义';
     $('#gameBoard').onclick=function(e){
@@ -2123,7 +2129,7 @@ input[type="range"]::-webkit-slider-thumb {
     $(`#gameTime${pid}`).style.color='var(--success)';
     // Show celebration on player's side
     $(`#playerCelebrate${pid}`).style.display='';gConfetti();gApplause();
-    if(!gState.pk){$('#gameInfo').textContent='🎉 全部匹配完成！';return;}
+    if(!gState.pk){clearInterval(gState.timer);$('#gameInfo').textContent='🎉 全部匹配完成！⏱ '+gState.elapsed.toFixed(1)+'s';$('#gameTimer').textContent='✅ '+gState.elapsed.toFixed(1)+'s';return;}
     // Check if both done
     const otherPid=pid===0?1:0;
     if(gState.done[otherPid]){
