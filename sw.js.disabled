@@ -1,0 +1,27 @@
+const CACHE = 'vocab-v11-offline';
+// Network-first strategy: always try network first, fall back to cache
+// This ensures users always get the latest files without manual intervention
+
+self.addEventListener('install', e => {
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))))
+  );
+  e.waitUntil(clients.claim());
+});
+
+self.addEventListener('fetch', e => {
+  // Only cache audio files (for offline playback); everything else from network
+  if (e.request.url.includes('/audio/')) {
+    e.respondWith(
+      caches.match(e.request).then(r => r || fetch(e.request).then(res => {
+        if (res.ok) { const clone = res.clone(); caches.open(CACHE).then(c => c.put(e.request, clone)); }
+        return res;
+      }))
+    );
+  }
+  // All other files: always fetch from network (no caching)
+});
