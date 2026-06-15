@@ -225,6 +225,17 @@
   }
   function toggleTheme() { darkMode = !darkMode; applyTheme(); savePrefs(); }
 
+  function enterClassroomMode() {
+    document.body.classList.add('classroom-mode');
+    showEl(btnClassroomExit);
+    closeSidebar();
+  }
+
+  function exitClassroomMode() {
+    document.body.classList.remove('classroom-mode');
+    hideEl(btnClassroomExit);
+  }
+
   function populateGrades() {
     gradeBtns.innerHTML = '';
     Object.keys(VOCAB_DATA).forEach(g => {
