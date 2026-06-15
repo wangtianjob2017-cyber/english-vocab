@@ -34,6 +34,38 @@ Open `index.html` directly in your browser — TTS uses the browser's built-in s
 - Uses browser-native speech synthesis — **fully offline**, no external API dependency
 - Falls back to online TTS (Youdao/Baidu) only when speechSynthesis is unavailable
 - Select different English voices in settings
+- If local `audio/` MP3 files exist, English playback uses them first; this folder is large and ignored by Git
+
+## Maintenance
+
+Main files:
+
+- `index.html` — page structure
+- `styles.css` — visual styles
+- `app.js` — interaction logic
+- `data.js` — vocabulary data
+- `syllables.js` — syllable display dictionary
+- `sw.js` — PWA/offline cache
+
+Run health checks:
+
+```bash
+python3 -B health_check.py
+```
+
+List missing audio:
+
+```bash
+python3 generate_audio.py --dry-run
+```
+
+Download missing audio:
+
+```bash
+python3 generate_audio.py
+```
+
+The `audio/` folder is not committed to Git. If you deploy the site and want local MP3 playback, upload `audio/` together with the web files. Without it, the app falls back to browser TTS or online audio.
 
 ## Author
 

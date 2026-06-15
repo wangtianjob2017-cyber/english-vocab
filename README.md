@@ -35,6 +35,38 @@
 - 使用浏览器内置语音引擎，**完全离线可用**，不依赖外部 API
 - 如浏览器不支持，自动切换到在线语音（有道词典/百度翻译）
 - 可在设置中选择不同的英文语音
+- 本地 `audio/` 目录存在时，英文会优先播放本地 MP3；该目录体积较大，默认被 `.gitignore` 忽略
+
+## 项目维护
+
+主要文件：
+
+- `index.html` — 页面结构
+- `styles.css` — 界面样式
+- `app.js` — 交互逻辑
+- `data.js` — 单词数据
+- `syllables.js` — 音节显示字典
+- `sw.js` — PWA 与离线缓存
+
+常用检查：
+
+```bash
+python3 -B health_check.py
+```
+
+查看缺失音频：
+
+```bash
+python3 generate_audio.py --dry-run
+```
+
+下载缺失音频：
+
+```bash
+python3 generate_audio.py
+```
+
+`audio/` 没有提交到 Git。部署到服务器时，如需本地 MP3 朗读，请把 `audio/` 文件夹和网页文件一起上传；如果不上传，应用会自动回退到浏览器 TTS 或在线语音。
 
 ## 如何部署到国内平台
 

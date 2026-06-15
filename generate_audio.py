@@ -27,9 +27,12 @@ def extract_words():
         content = f.read()
 
     words = []
+    seen_files = set()
     for match in re.finditer(r'en:\s*"([^"]+)"', content):
         word = match.group(1)
-        if word not in words:
+        filename = safe_filename(word)
+        if filename not in seen_files:
+            seen_files.add(filename)
             words.append(word)
     return words
 

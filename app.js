@@ -32,6 +32,18 @@
     }[ch]));
   }
 
+  function showEl(el, display = '') {
+    if (!el) return;
+    el.classList.remove('hidden', 'hidden-menu');
+    el.style.display = display;
+  }
+
+  function hideEl(el, menu = false) {
+    if (!el) return;
+    el.classList.add(menu ? 'hidden-menu' : 'hidden');
+    el.style.display = 'none';
+  }
+
   // State
   let currentGrade = null, selectedUnits = new Set(), playlist = [], orderedPlaylist = [];
   let currentIndex = -1, isPlaying = false, repeatCount = 1, currentRepeat = 0;
@@ -53,6 +65,12 @@
       if (s.spellMode !== undefined) spellMode = s.spellMode;
       if (s.shuffleMode !== undefined) shuffleMode = s.shuffleMode;
       if (s.autoLoop !== undefined) autoLoop = s.autoLoop;
+      if (s.dictWordCount !== undefined) dictWordCount = s.dictWordCount;
+      if (s.dictSeqMode !== undefined) dictSeqMode = s.dictSeqMode;
+      if (s.dictRange) dictRange = s.dictRange;
+      if (s.dictSpeakCN !== undefined) dictSpeakCN = s.dictSpeakCN;
+      if (s.wsMode) wsMode = s.wsMode;
+      if (s.wsSource) wsSource = s.wsSource;
       // contentMode always defaults to 'all' on page load
       if (s.favorites) favorites = new Set(JSON.parse(s.favorites));
       if (s.voiceName) selectedVoiceName = s.voiceName;
@@ -170,11 +188,15 @@
     initDictControls();
     // Print/Export dropdown menu
     const printMenu = $('#printExportMenu');
-    $('#btnPrintExport').addEventListener('click', (e) => { e.stopPropagation(); printMenu.style.display = printMenu.style.display === 'none' ? 'block' : 'none'; });
-    document.addEventListener('click', () => { printMenu.style.display = 'none'; });
+    $('#btnPrintExport').addEventListener('click', (e) => {
+      e.stopPropagation();
+      const hidden = getComputedStyle(printMenu).display === 'none';
+      hidden ? showEl(printMenu, 'block') : hideEl(printMenu, true);
+    });
+    document.addEventListener('click', () => { hideEl(printMenu, true); });
     printMenu.addEventListener('click', (e) => {
       e.stopPropagation(); const act = e.target.closest('button')?.dataset.action;
-      if (!act) return; printMenu.style.display = 'none';
+      if (!act) return; hideEl(printMenu, true);
       if (act === 'print-current') { window.print(); }
       else if (act === 'print-star') { const wf = favFilter; if (!wf) { favFilter = true; renderWordList(); } setTimeout(() => { window.print(); if (!wf) { favFilter = false; setTimeout(renderWordList, 300); } }, 200); }
       else if (act === 'export') { exportDataFile(); }
@@ -618,7 +640,7 @@
         dictWordCount = n;
         $$('.dict-num-btns button[data-n]').forEach(x => x.classList.remove('active'));
         b.classList.add('active');
-        updateDictStatus();
+        updateDictStatus(); savePrefs();
       });
     });
     // Mode buttons
@@ -628,7 +650,7 @@
         dictSeqMode = b.dataset.mode === 'seq';
         $$('.dict-num-btns button[data-mode]').forEach(x => x.classList.remove('active'));
         b.classList.add('active');
-        updateDictStatus();
+        updateDictStatus(); savePrefs();
       });
     });
     // Range buttons (all/star/phrase)
@@ -638,7 +660,7 @@
         dictRange = b.dataset.range;
         $$('#dictRangeBtns button').forEach(x => x.classList.remove('active'));
         b.classList.add('active');
-        updateDictStatus();
+        updateDictStatus(); savePrefs();
       });
     });
     // Speak mode buttons (听英写中/听中写英)
@@ -648,7 +670,7 @@
         dictSpeakCN = b.dataset.spk === 'cn';
         $$('#dictSpeakModeBtns button').forEach(x => x.classList.remove('active'));
         b.classList.add('active');
-        updateDictStatus();
+        updateDictStatus(); savePrefs();
       });
     });
     // Close button
@@ -682,10 +704,10 @@
     dictationPanel.classList.add('show');
     updateDictStatus();
     dictGrid.innerHTML = '';
-    dictAnswers.style.display = 'none';
-    btnDictStart.style.display = '';
-    btnDictPause.style.display = 'none';
-    btnDictReveal.style.display = 'none';
+    hideEl(dictAnswers);
+    showEl(btnDictStart);
+    hideEl(btnDictPause);
+    hideEl(btnDictReveal);
     dictationActive = false;
     dictPaused = false;
     pickStudents(); // auto-pick on open
@@ -739,11 +761,11 @@
       `<div class="dict-num" id="dictNum${i}">${String(i+1).padStart(2,'0')}</div>`
     ).join('');
     dictGridEls = dictationWords.map((_, i) => document.getElementById('dictNum' + i));
-    dictAnswers.style.display = 'none';
-    btnDictStart.style.display = 'none';
-    btnDictPause.style.display = '';
+    hideEl(dictAnswers);
+    hideEl(btnDictStart);
+    showEl(btnDictPause);
     btnDictPause.textContent = '\u23f8 \u6682\u505c';
-    btnDictReveal.style.display = 'none';
+    hideEl(btnDictReveal);
     dictStatus.textContent = `听写中... ${total} 个单词`;
 
     // Play each word
@@ -781,13 +803,13 @@
     // Done
     dictationActive = false;
     dictPaused = false;
-    btnDictPause.style.display = 'none';
+    hideEl(btnDictPause);
     wordCard.classList.remove('active');
     wordCard.querySelector('.word-en').textContent = 'Done';
     wordPos.textContent = '';
     wordZh.textContent = '听写完毕';
     dictStatus.textContent = `听写完毕！共 ${total} 个单词`;
-    btnDictReveal.style.display = '';
+    showEl(btnDictReveal);
 
     // Increment counts
     dictationWords.forEach(w => {
@@ -810,7 +832,7 @@
     }
     nums.sort((a, b) => a - b);
     studentGrid.innerHTML = nums.map(n =>
-      `<div style="width:56px;height:56px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:800;box-shadow:0 4px 12px rgba(255,149,0,0.3)">${n}</div>`
+      `<div class="student-number">${n}</div>`
     ).join('');
     localStorage.setItem('vocab-student-cfg', JSON.stringify({ maxId, count }));
   }
@@ -821,17 +843,19 @@
       dictationWords.map((w, i) =>
         `<div class="dict-answer-row"><span class="num">${String(i+1).padStart(2,'0')}</span><span class="en">${escapeHTML(w.en)}</span><span class="pos">${escapeHTML(w.pos || '')}</span><span class="zh">${escapeHTML(w.zh)}</span><span class="cnt">${counts[w.en.toLowerCase()]||0}次</span></div>`
       ).join('');
-    dictAnswers.style.display = 'block';
-    btnDictReveal.style.display = 'none';
+    showEl(dictAnswers, 'block');
+    hideEl(btnDictReveal);
   }
 
   // ===== Worksheet =====
   function initWorksheetControls() {
     $$('#worksheetModeBtns button').forEach(b => {
-      b.addEventListener('click', () => { wsMode = b.dataset.mode; $$('#worksheetModeBtns button').forEach(x => x.classList.remove('active')); b.classList.add('active'); generateWorksheet(); });
+      b.classList.toggle('active', b.dataset.mode === wsMode);
+      b.addEventListener('click', () => { wsMode = b.dataset.mode; $$('#worksheetModeBtns button').forEach(x => x.classList.remove('active')); b.classList.add('active'); generateWorksheet(); savePrefs(); });
     });
     $$('#worksheetSourceBtns button').forEach(b => {
-      b.addEventListener('click', () => { wsSource = b.dataset.src; $$('#worksheetSourceBtns button').forEach(x => x.classList.remove('active')); b.classList.add('active'); generateWorksheet(); });
+      b.classList.toggle('active', b.dataset.src === wsSource);
+      b.addEventListener('click', () => { wsSource = b.dataset.src; $$('#worksheetSourceBtns button').forEach(x => x.classList.remove('active')); b.classList.add('active'); generateWorksheet(); savePrefs(); });
     });
   }
 
@@ -855,12 +879,12 @@
 
   function generateWorksheet() {
     const words = getWorksheetWords();
-    if (words.length === 0) { worksheetPreview.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-tertiary)">没有可生成的单词</div>'; return; }
+    if (words.length === 0) { worksheetPreview.innerHTML = '<div class="worksheet-empty">没有可生成的单词</div>'; return; }
     const modeLabel = wsMode === 'cn2en' ? '汉译英' : '英译汉';
     const labelCol1 = wsMode === 'cn2en' ? '中文释义' : '英语单词';
     const srcLabel = wsSource === 'star' ? '星标' : (wsSource === 'phrase' ? '短语' : (currentGrade || ''));
     const gd = getMergedGradeData();
-    const th = (label) => `<tr><th style="width:5%">#</th><th style="width:22%">${label}</th><th style="width:14%">词性</th><th style="width:20%">第三次</th><th style="width:20%">第二次</th><th style="width:19%">第一次</th></tr>`;
+    const th = (label) => `<tr><th>#</th><th>${label}</th><th>词性</th><th>第三次</th><th>第二次</th><th>第一次</th></tr>`;
     let html = '', idx = 0, lastUnit = null, tableOpen = false;
     words.forEach(w => {
       const unitKey = w.unit;
@@ -873,7 +897,7 @@
         tableOpen = true;
       }
       idx++;
-      html += `<tr><td style="text-align:center;font-size:0.75rem;padding:4px 2px">${idx}</td><td class="ws-word">${escapeHTML(wsMode==='cn2en'?w.zh:w.en)}</td><td class="ws-pos">${escapeHTML(wsMode==='cn2en'?(w.pos||''):'')}</td><td class="ws-blank"></td><td class="ws-blank"></td><td class="ws-blank"></td></tr>`;
+      html += `<tr><td class="ws-index">${idx}</td><td class="ws-word">${escapeHTML(wsMode==='cn2en'?w.zh:w.en)}</td><td class="ws-pos">${escapeHTML(wsMode==='cn2en'?(w.pos||''):'')}</td><td class="ws-blank"></td><td class="ws-blank"></td><td class="ws-blank"></td></tr>`;
     });
     if (tableOpen) html += '</tbody></table>';
     worksheetPreview.innerHTML = `<div class="ws-page"><div class="ws-title">单词默写单（${modeLabel}）</div><div class="ws-info"><span>姓名：__________</span><span>班级：__________</span><span>日期：__________</span><span>范围：${escapeHTML(srcLabel)}</span></div>${html}</div>`;
@@ -946,9 +970,9 @@
   function updateCardStar() {
     if (currentIndex < 0 || currentIndex >= playlist.length) {
       cardStar.classList.remove('faved');
-      cardStar.style.display = 'none';
+      hideEl(cardStar);
     } else {
-      cardStar.style.display = '';
+      showEl(cardStar);
       const key = playlist[currentIndex].en.toLowerCase();
       cardStar.classList.toggle('faved', favorites.has(key));
     }
@@ -967,10 +991,10 @@
   function updateFavBadge() {
     const cnt = favorites.size;
     if (cnt > 0) {
-      favCountBadge.style.display = 'flex';
+      showEl(favCountBadge, 'flex');
       favCountBadge.textContent = cnt > 99 ? '99+' : cnt;
     } else {
-      favCountBadge.style.display = 'none';
+      hideEl(favCountBadge);
     }
   }
 
@@ -993,7 +1017,7 @@
     if (!isPlaying) btnPlay.disabled = !hasWords;
     btnPrev.disabled = !hasWords || currentIndex <= 0;
     btnNext.disabled = !hasWords || currentIndex >= total - 1;
-    wordCountBadge.innerHTML = hasWords ? `<span class="dot"></span> 共 ${total} 个单词` : '<span class="dot" style="background:var(--text-tertiary)"></span> 请先选择单元';
+    wordCountBadge.innerHTML = hasWords ? `<span class="dot"></span> 共 ${total} 个单词` : '<span class="dot muted-dot"></span> 请先选择单元';
     const cur = currentIndex >= 0 ? currentIndex + 1 : '--';
     progressText.textContent = `${cur} / ${total}`;
     progressBar.style.width = hasWords && currentIndex >= 0 ? ((currentIndex + 1) / total * 100).toFixed(1) + '%' : '0%';
@@ -1282,14 +1306,14 @@
   function gConfetti() {
     const el = $('#gameCelebrate');
     if (!el) return;
-    el.style.display = '';
-    setTimeout(() => { el.style.display = 'none'; }, 1400);
+    showEl(el);
+    setTimeout(() => { hideEl(el); }, 1400);
   }
 
   function initGame() {
     const gmo=$('#gameModalOverlay');
-    const closeGame=()=>{clearInterval(gState.timer);gmo.classList.remove('show');$('#gameCelebrate').style.display='none';};
-    $('#btnGame').addEventListener('click',()=>{if(playlist.length<10){showToast('请先选择至少10个单词的单元');return;} gmo.classList.add('show');});
+    const closeGame=()=>{clearInterval(gState.timer);gmo.classList.remove('show');hideEl($('#gameCelebrate'));};
+    $('#btnGame').addEventListener('click',()=>{if(playlist.length<10){showToast('请先选择至少10个单词的单元');return;} clearInterval(gState.timer); gState={}; hideEl($('#gameTimer')); $('#gameInfo').textContent=''; hideEl($('#gameCelebrate')); $('#gameBoard').innerHTML='<div class="game-empty-state">选择一种模式开始本轮匹配练习</div>'; gmo.classList.add('show');});
     $('#btnGameClose').addEventListener('click',closeGame);
     gmo.addEventListener('click',e=>{if(e.target===gmo)closeGame();});
     document.addEventListener('keydown',e=>{if(e.key==='Escape'&&gmo.classList.contains('show'))closeGame();});
@@ -1301,22 +1325,22 @@
   function shuf(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];} return b;}
 
   function renderPlayerBoard(words,pid,label,cnOrder){
-    const L=words.map((w,i)=>`<div class="game-item" data-pid="${pid}" data-idx="${i}" data-side="en">${escapeHTML(w.en)} <small style="opacity:0.4;font-size:0.65em;font-weight:400">${escapeHTML(w.pos||'')}</small></div>`).join('');
+    const L=words.map((w,i)=>`<div class="game-item" data-pid="${pid}" data-idx="${i}" data-side="en">${escapeHTML(w.en)} <small class="game-pos">${escapeHTML(w.pos||'')}</small></div>`).join('');
     const R=cnOrder.map(zh=>`<div class="game-item" data-pid="${pid}" data-zh="${escapeHTML(zh)}" data-side="zh">${escapeHTML(zh)}</div>`).join('');
     const scoreClass = pid===0?'s1':'s2';
-    const timeHtml = `<span style="font-size:2rem;font-weight:800" id="gameTime${pid}"></span>`;
-    return `<div style="flex:1;min-width:0;position:relative" id="playerZone${pid}"><div class="game-col-title">${pid===0?timeHtml+' '+label:label+' '+timeHtml}<br><span class="game-col-score ${scoreClass}" id="gameScore${pid}">0 / 10</span></div><div class="game-board-row"><div>${L}</div><div></div><div>${R}</div></div><div id="playerCelebrate${pid}" style="display:none;text-align:center;padding:20px;font-size:2rem;animation:celebrateBounce 0.5s infinite alternate;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none">完成</div></div>`;
+    const timeHtml = `<span class="game-time-inline" id="gameTime${pid}"></span>`;
+    return `<div class="game-player-zone" id="playerZone${pid}"><div class="game-col-title">${pid===0?timeHtml+' '+label:label+' '+timeHtml}<br><span class="game-col-score ${scoreClass}" id="gameScore${pid}">0 / 10</span></div><div class="game-board-row"><div>${L}</div><div></div><div>${R}</div></div><div id="playerCelebrate${pid}" class="game-player-celebrate">完成</div></div>`;
   }
 
   function buildGameBoard(pk){
-    clearInterval(gState.timer);$('#gameCelebrate').style.display='none';
+    clearInterval(gState.timer);hideEl($('#gameCelebrate'));
     gState={pk,timer:null,elapsed:0,selected:{},words:[],matched:[0,0],done:[false,false],finishTime:[0,0]};
     const baseWords=pickWords(10);
     if(pk){
       const cn1=shuf(baseWords.map(w=>w.zh)),cn2=shuf(baseWords.map(w=>w.zh));
       gState.words=[baseWords,baseWords];
-      $('#gameBoard').innerHTML=`<div style="display:flex;gap:30px;align-items:start">${renderPlayerBoard(baseWords,0,'玩家一',cn1)}<div class="game-player-divider"></div>${renderPlayerBoard(baseWords,1,'玩家二',cn2)}</div>`;
-      $('#gameTimer').style.display='';$('#gameTimer').textContent='';
+      $('#gameBoard').innerHTML=`<div class="game-board-pk">${renderPlayerBoard(baseWords,0,'玩家一',cn1)}<div class="game-player-divider"></div>${renderPlayerBoard(baseWords,1,'玩家二',cn2)}</div>`;
+      showEl($('#gameTimer'));$('#gameTimer').textContent='';
       const startTime=Date.now();
       gState.timer=setInterval(()=>{
         gState.elapsed=(Date.now()-startTime)/1000;
@@ -1327,9 +1351,9 @@
     }else{
       gState.words=[baseWords];gState.matched=[0];
       const cnS=shuf(baseWords.map(w=>w.zh));
-      $('#gameBoard').innerHTML=`<div style="display:flex;justify-content:center"><div style="flex:1;max-width:520px">${renderPlayerBoard(baseWords,0,'连连看',cnS)}</div></div>`;
+      $('#gameBoard').innerHTML=`<div class="game-board-solo"><div class="game-board-solo-inner">${renderPlayerBoard(baseWords,0,'连连看',cnS)}</div></div>`;
       // Single player: start timer
-      $('#gameTimer').style.display='';$('#gameTimer').textContent='0.0s';
+      showEl($('#gameTimer'));$('#gameTimer').textContent='0.0s';
       const soloStart=Date.now();
       gState.timer=setInterval(()=>{
         gState.elapsed=(Date.now()-soloStart)/1000;
@@ -1363,7 +1387,7 @@
     $(`#gameTime${pid}`).textContent=gState.elapsed.toFixed(1)+'s';
     $(`#gameTime${pid}`).style.color='var(--success)';
     // Show celebration on player's side
-    $(`#playerCelebrate${pid}`).style.display='';gConfetti();gApplause();
+    showEl($(`#playerCelebrate${pid}`), 'block');gConfetti();gApplause();
     if(!gState.pk){clearInterval(gState.timer);$('#gameInfo').textContent='全部匹配完成 · '+gState.elapsed.toFixed(1)+'s';$('#gameTimer').textContent=gState.elapsed.toFixed(1)+'s';return;}
     // Check if both done
     const otherPid=pid===0?1:0;
@@ -1374,7 +1398,7 @@
       let msg=`玩家一 ${t0.toFixed(1)}s  vs  玩家二 ${t1.toFixed(1)}s · `;
       msg+=t0<t1?'玩家一获胜':t1<t0?'玩家二获胜':'平局';
       $('#gameInfo').textContent=msg;
-      $('#gameTimer').style.display='none';
+      hideEl($('#gameTimer'));
     }else{
       $('#gameInfo').textContent=`玩家${pid===0?'一':'二'}已完成 · ${gState.elapsed.toFixed(1)}s，等待另一位...`;
     }
@@ -1384,6 +1408,7 @@
     try {
       localStorage.setItem('vocab-prefs', JSON.stringify({
         darkMode, speed, repeat: repeatCount, speakChinese, spellMode, shuffleMode, autoLoop,
+        dictWordCount, dictSeqMode, dictRange, dictSpeakCN, wsMode, wsSource,
         voiceName: selectedVoiceName,
         favorites: JSON.stringify([...favorites])
       }));
