@@ -4,12 +4,13 @@ Generate MP3 audio files for all English words using Youdao (有道) TTS.
 Natural-sounding voice, free, no API key needed.
 
 Usage:
-  python generate_audio.py
+  python generate_audio.py --dry-run   # list missing files
+  python generate_audio.py             # download missing files
 """
 
+import argparse
 import os
 import re
-import sys
 import time
 import urllib.request
 import urllib.parse
@@ -36,8 +37,8 @@ def safe_filename(word):
     """Convert a word/phrase to a safe filename"""
     name = word.lower().strip()
     name = re.sub(r'[^a-z0-9\s-]', '', name)
-    name = re.sub(r'[\s-]+', '_', name)
-    name = name.strip('_')
+    name = re.sub(r'\s+', '_', name)
+    name = name.replace('-', '_')
     return name + '.mp3'
 
 def download_word(word, filepath):
@@ -61,6 +62,10 @@ def download_word(word, filepath):
         return False
 
 def main():
+    parser = argparse.ArgumentParser(description='Generate missing MP3 files for data.js words.')
+    parser.add_argument('--dry-run', action='store_true', help='Only list missing audio files; do not download.')
+    args = parser.parse_args()
+
     words = extract_words()
     print(f"Found {len(words)} unique words")
 
@@ -83,6 +88,12 @@ def main():
 
     if not to_generate:
         print("All audio files already exist!")
+        return
+
+    if args.dry_run:
+        print(f"Missing {len(to_generate)} MP3 files:")
+        for word, fname in to_generate:
+            print(f"  {fname}  <-  {word}")
         return
 
     print(f"Downloading {len(to_generate)} MP3s from Youdao (有道)...")
