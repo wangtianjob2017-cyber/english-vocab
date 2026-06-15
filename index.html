@@ -168,6 +168,10 @@
       <p class="dict-status" id="dictStatus">准备听写，随机抽取 15 个单词</p>
       <div class="dict-grid" id="dictGrid"></div>
       <div class="dict-answers hidden" id="dictAnswers"></div>
+      <div class="dict-review-actions hidden" id="dictReviewActions">
+        <button class="btn-ghost auto-button" id="btnDictReplay">再听本次</button>
+        <button class="btn-ghost auto-button" id="btnDictStarAll">星标本次</button>
+      </div>
       <div class="dict-actions">
         <button class="btn-primary auto-button" id="btnDictStart">开始听写</button>
         <button class="btn-ghost auto-button hidden" id="btnDictPause">暂停</button>
@@ -233,6 +237,7 @@
     <div class="form-group"><span class="form-label">目标单元</span><select id="importUnitSelect"><option value="">-- 请先选择年级 --</option></select></div>
     <div class="hint">每行一个单词，格式：<code>英文 | 中文</code><br>支持 Tab 分隔（从 Excel 直接粘贴）</div>
     <textarea id="importTextarea" placeholder="apple | 苹果&#10;book | 书&#10;cat | 猫"></textarea>
+    <div class="import-preview" id="importPreview">尚未解析</div>
     <div class="modal-actions">
       <button class="danger" id="btnImportClear">清空本单元</button>
       <div class="modal-spacer"></div>

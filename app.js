@@ -14,6 +14,7 @@
   const searchInput = $('#searchInput'), btnDictation = $('#btnDictation'), btnFavFilter = $('#btnFavFilter');
   const btnClassroom = $('#btnClassroom'), btnClassroomExit = $('#btnClassroomExit'), audioSourceBadge = $('#audioSourceBadge');
   const dictationPanel = $('#dictationPanel'), dictStatus = $('#dictStatus'), dictGrid = $('#dictGrid'), dictAnswers = $('#dictAnswers');
+  const dictReviewActions = $('#dictReviewActions'), btnDictReplay = $('#btnDictReplay'), btnDictStarAll = $('#btnDictStarAll');
   const studentMaxId = $('#studentMaxId'), studentGrid = $('#studentGrid'), btnPickStudents = $('#btnPickStudents');
   const btnDictStart = $('#btnDictStart'), btnDictPause = $('#btnDictPause'), btnDictReveal = $('#btnDictReveal');
   const btnWorksheet = $('#btnWorksheet'), worksheetModalOverlay = $('#worksheetModalOverlay'), worksheetPreview = $('#worksheetPreview');
@@ -21,7 +22,7 @@
   const progMiniText = $('#progMiniText');
   const favCountBadge = $('#favCountBadge');
   const sidebar = $('#sidebar'), overlay = $('#overlay'), hamburger = $('#hamburger'), toastEl = $('#toast');
-  const importModalOverlay = $('#importModalOverlay'), importUnitSelect = $('#importUnitSelect'), importTextarea = $('#importTextarea');
+  const importModalOverlay = $('#importModalOverlay'), importUnitSelect = $('#importUnitSelect'), importTextarea = $('#importTextarea'), importPreview = $('#importPreview');
 
   function escapeHTML(value) {
     return String(value ?? '').replace(/[&<>"']/g, ch => ({
@@ -121,11 +122,14 @@
     $('#btnImportExport').addEventListener('click', exportDataFile);
     $('#btnExport').addEventListener('click', exportDataFile);
     importModalOverlay.addEventListener('click', e => { if (e.target === importModalOverlay) closeImportModal(); });
+    importTextarea.addEventListener('input', updateImportPreview);
     btnFavFilter.addEventListener('click', toggleFavFilter);
     btnDictation.addEventListener('click', startDictation);
     btnDictStart.addEventListener('click', runDictation);
     btnDictPause.addEventListener('click', toggleDictPause);
     btnDictReveal.addEventListener('click', revealDictation);
+    btnDictReplay.addEventListener('click', () => runDictation(dictationWords));
+    btnDictStarAll.addEventListener('click', starDictationWords);
     btnPickStudents.addEventListener('click', pickStudents);
     $('#btnDictClose').addEventListener('click', () => { dictationActive = false; dictationPanel.classList.remove('show'); });
     // Worksheet
@@ -289,6 +293,18 @@
   function getImportedData() { try { return JSON.parse(localStorage.getItem('vocab-imports')||'{}'); } catch(e) { return {}; } }
   function setImportedData(d) { localStorage.setItem('vocab-imports', JSON.stringify(d)); }
 
+  function favoriteKey(word) {
+    return [word.grade || currentGrade || '', word.unit || '', String(word.en || '').toLowerCase()].join('::');
+  }
+
+  function legacyFavoriteKey(word) {
+    return String(word.en || '').toLowerCase();
+  }
+
+  function isFavorite(word) {
+    return favorites.has(favoriteKey(word)) || favorites.has(legacyFavoriteKey(word));
+  }
+
   function getMergedGradeData() {
     const base = VOCAB_DATA[currentGrade] || {};
     const imp = getImportedData();
@@ -320,7 +336,7 @@
           // contentMode filter:
           if (contentMode === 'phrases' && (!isPhrase || w.isProper || isProperPhrase(w.en))) return;
           if (contentMode === 'words' && w.isProper) return;
-          orderedPlaylist.push({ en: w.en, zh: w.zh, unit: un, phonetic: w.phonetic, isProper: w.isProper, pos: w.pos });
+          orderedPlaylist.push({ en: w.en, zh: w.zh, unit: un, grade: currentGrade, phonetic: w.phonetic, isProper: w.isProper, pos: w.pos });
         });
       }
     });
@@ -406,6 +422,12 @@
       || voices.find(v => v.lang.startsWith('zh-'))
       || voices[0];
   }
+
+  function setAudioSource(label) {
+    if (!audioSourceBadge) return;
+    audioSourceBadge.textContent = '语音来源：' + label;
+    showEl(audioSourceBadge);
+  }
   // ===== Audio helpers =====
   const AUDIO_BASE = 'audio/';
   let audioCacheOk = new Set();
@@ -426,7 +448,7 @@
         resolved = true;
         clearTimeout(t);
         a.pause(); a.removeAttribute('src'); a.load();
-        if (ok) { audioCacheOk.add(en.toLowerCase()); resolve(); }
+        if (ok) { audioCacheOk.add(en.toLowerCase()); setAudioSource('本地音频'); resolve(); }
         else reject();
       };
       let t = setTimeout(() => finish(false), 12000);
@@ -461,6 +483,7 @@
       return;
     }
     const u = new SpeechSynthesisUtterance(text);
+    setAudioSource(lang === 'en-US' ? '浏览器英文语音' : '浏览器中文语音');
     u.lang = lang;
     u.rate = speed;
     u.volume = 1;
@@ -480,8 +503,10 @@
       let url;
       if (lang === 'en-US') {
         url = 'https://dict.youdao.com/dictvoice?audio=' + encodeURIComponent(text) + '&type=0';
+        setAudioSource('在线英文音频');
       } else {
         url = 'https://fanyi.baidu.com/gettts?lan=zh&text=' + encodeURIComponent(text) + '&spd=3&source=web';
+        setAudioSource('在线中文音频');
       }
       const a = new Audio(url);
       a.volume = 1; a.playbackRate = speed;
@@ -710,7 +735,7 @@
   function getDictPool() {
     let pool = playlist.filter(w => !w.isProper);
     if (dictRange === 'phrase') pool = pool.filter(w => (typeof w.en === 'string') && /\s/.test(w.en));
-    if (dictRange === 'star') pool = pool.filter(w => favorites.has(w.en.toLowerCase()));
+    if (dictRange === 'star') pool = pool.filter(isFavorite);
     return pool.length > 0 ? pool : playlist;
   }
 
@@ -721,6 +746,7 @@
     updateDictStatus();
     dictGrid.innerHTML = '';
     hideEl(dictAnswers);
+    hideEl(dictReviewActions);
     showEl(btnDictStart);
     hideEl(btnDictPause);
     hideEl(btnDictReveal);
@@ -740,14 +766,16 @@
     }
   }
 
-  async function runDictation() {
+  async function runDictation(replayWords = null) {
     const pool = getDictPool();
-    if (pool.length === 0) { showToast('没有可听写的单词'); return; }
+    if (!replayWords && pool.length === 0) { showToast('没有可听写的单词'); return; }
     const counts = getDictCounts();
 
     let selected;
     const targetCount = dictWordCount === 0 ? pool.length : dictWordCount;
-    if (dictSeqMode) {
+    if (replayWords && replayWords.length > 0) {
+      selected = [...replayWords];
+    } else if (dictSeqMode) {
       const startIdx = parseInt(localStorage.getItem('vocab-dict-seq-pos') || '0');
       selected = [];
       for (let i = 0; i < targetCount; i++) {
@@ -778,6 +806,7 @@
     ).join('');
     dictGridEls = dictationWords.map((_, i) => document.getElementById('dictNum' + i));
     hideEl(dictAnswers);
+    hideEl(dictReviewActions);
     hideEl(btnDictStart);
     showEl(btnDictPause);
     btnDictPause.textContent = '\u23f8 \u6682\u505c';
@@ -860,7 +889,18 @@
         `<div class="dict-answer-row"><span class="num">${String(i+1).padStart(2,'0')}</span><span class="en">${escapeHTML(w.en)}</span><span class="pos">${escapeHTML(w.pos || '')}</span><span class="zh">${escapeHTML(w.zh)}</span><span class="cnt">${counts[w.en.toLowerCase()]||0}次</span></div>`
       ).join('');
     showEl(dictAnswers, 'block');
+    showEl(dictReviewActions, 'flex');
     hideEl(btnDictReveal);
+  }
+
+  function starDictationWords() {
+    if (!dictationWords.length) return;
+    dictationWords.forEach(w => favorites.add(favoriteKey(w)));
+    updateFavBadge();
+    updateCardStar();
+    renderWordList();
+    savePrefs();
+    showToast(`已星标本次 ${dictationWords.length} 个单词`);
   }
 
   // ===== Worksheet =====
@@ -925,7 +965,10 @@
     Object.keys(allData).forEach(grade => {
       Object.keys(allData[grade]).forEach(unit => {
         const ud = allData[grade][unit];
-        if (ud.words) ud.words.forEach(w => { if (favorites.has(w.en.toLowerCase())) results.push({ en: w.en, zh: w.zh, pos: w.pos, unit, grade, title: ud.title||unit }); });
+        if (ud.words) ud.words.forEach(w => {
+          const word = { en: w.en, zh: w.zh, pos: w.pos, unit, grade };
+          if (isFavorite(word)) results.push({ ...word, title: ud.title||unit });
+        });
       });
     });
     return results;
@@ -974,8 +1017,10 @@
   // ===== Favorites =====
   function toggleFavorite(index) {
     if (index < 0 || index >= playlist.length) return;
-    const key = playlist[index].en.toLowerCase();
-    if (favorites.has(key)) favorites.delete(key);
+    const word = playlist[index];
+    const key = favoriteKey(word);
+    const legacyKey = legacyFavoriteKey(word);
+    if (isFavorite(word)) { favorites.delete(key); favorites.delete(legacyKey); }
     else favorites.add(key);
     updateCardStar();
     renderWordList();
@@ -989,8 +1034,7 @@
       hideEl(cardStar);
     } else {
       showEl(cardStar);
-      const key = playlist[currentIndex].en.toLowerCase();
-      cardStar.classList.toggle('faved', favorites.has(key));
+      cardStar.classList.toggle('faved', isFavorite(playlist[currentIndex]));
     }
   }
 
@@ -999,7 +1043,7 @@
     btnFavFilter.classList.toggle('active', favFilter);
     renderWordList();
     if (favFilter) {
-      const cnt = playlist.filter((_, i) => favorites.has(playlist[i].en.toLowerCase())).length;
+      const cnt = playlist.filter(isFavorite).length;
       showToast(`已筛选 ${cnt} 个收藏单词`);
     }
   }
@@ -1090,7 +1134,7 @@
 
     playlist.forEach((word, i) => {
       // Fav filter
-      if (favFilter && !favorites.has(word.en.toLowerCase())) return;
+      if (favFilter && !isFavorite(word)) return;
       // Search filter
       if (query && !word.en.toLowerCase().includes(query) && !word.zh.includes(query)) return;
 
@@ -1114,7 +1158,7 @@
       if (i === currentIndex) row.classList.add('current');
       if (i < currentIndex) row.classList.add('played');
 
-      const isFaved = favorites.has(word.en.toLowerCase());
+      const isFaved = isFavorite(word);
       row.innerHTML = `
         <span class="idx">${i + 1}</span>
         <span class="word-body">
@@ -1174,10 +1218,12 @@
     Object.keys(gd).forEach(un => { const o = document.createElement('option'); o.value = un; o.textContent = un + ' — ' + gd[un].title; importUnitSelect.appendChild(o); });
     const oN = document.createElement('option'); oN.value = '__new__'; oN.textContent = '+ 新建单元...'; importUnitSelect.appendChild(oN);
     importTextarea.value = '';
+    updateImportPreview();
     importUnitSelect.onchange = () => {
-      if (importUnitSelect.value === '__new__' || !importUnitSelect.value) { importTextarea.value = ''; return; }
+      if (importUnitSelect.value === '__new__' || !importUnitSelect.value) { importTextarea.value = ''; updateImportPreview(); return; }
       const ud = gd[importUnitSelect.value];
       importTextarea.value = ud && ud.words ? ud.words.map(w => w.en + ' | ' + w.zh + (w.pos ? ' | ' + w.pos : '')).join('\n') : '';
+      updateImportPreview();
     };
     importModalOverlay.classList.add('show');
   }
@@ -1202,6 +1248,15 @@
       }
     });
     return words;
+  }
+
+  function updateImportPreview() {
+    const lines = importTextarea.value.split(/\n/).filter(l => l.trim()).length;
+    const words = parseImportText(importTextarea.value.trim());
+    const failed = Math.max(0, lines - words.length);
+    importPreview.textContent = lines === 0
+      ? '尚未解析'
+      : `已解析 ${words.length} 条${failed ? `，${failed} 行未识别` : ''}`;
   }
   function saveImport() {
     const un = importUnitSelect.value;
