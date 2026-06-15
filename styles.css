@@ -770,6 +770,15 @@ body.dark .modal-actions button {
   margin-top: 12px;
 }
 .word-card .card-star { color: var(--accent); }
+.audio-source-badge {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 12px;
+  color: var(--text-secondary);
+  background: rgba(255,255,255,0.72);
+  font-size: 0.76rem;
+  box-shadow: var(--shadow-sm);
+}
 
 .controls { gap: 12px; }
 .ctrl-btn {
@@ -802,6 +811,49 @@ body.dark .modal-actions button {
   background: rgba(255,255,255,0.72);
   backdrop-filter: blur(18px);
   box-shadow: var(--shadow-sm);
+}
+.classroom-exit {
+  position: fixed;
+  right: 24px;
+  top: 24px;
+  z-index: 120;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 9px 18px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+}
+body.classroom-mode .sidebar,
+body.classroom-mode .mobile-top,
+body.classroom-mode .toolbar,
+body.classroom-mode .word-list-panel,
+body.classroom-mode .badge,
+body.classroom-mode .prog-mini,
+body.classroom-mode .app-footer,
+body.classroom-mode .dictation-panel {
+  display: none !important;
+}
+body.classroom-mode .app {
+  display: block;
+}
+body.classroom-mode .main {
+  min-height: 100vh;
+  max-height: none;
+  justify-content: center;
+  padding: 48px 32px;
+}
+body.classroom-mode .word-card {
+  width: min(980px, 94vw);
+  padding: 72px 80px 62px;
+}
+body.classroom-mode .word-card .word-en {
+  font-size: clamp(4.8rem, 13vw, 9rem);
+}
+body.classroom-mode .word-card .word-zh {
+  font-size: clamp(2rem, 5vw, 3.4rem);
 }
 .menu-wrap { position: relative; }
 .print-menu {

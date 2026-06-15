@@ -12,6 +12,7 @@
   const speakChineseCb = $('#speakChinese'), spellModeCb = $('#spellMode'), voiceSelect = $('#voiceSelect');
   const shuffleModeCb = $('#shuffleMode'), autoLoopCb = $('#autoLoop');
   const searchInput = $('#searchInput'), btnDictation = $('#btnDictation'), btnFavFilter = $('#btnFavFilter');
+  const btnClassroom = $('#btnClassroom'), btnClassroomExit = $('#btnClassroomExit'), audioSourceBadge = $('#audioSourceBadge');
   const dictationPanel = $('#dictationPanel'), dictStatus = $('#dictStatus'), dictGrid = $('#dictGrid'), dictAnswers = $('#dictAnswers');
   const studentMaxId = $('#studentMaxId'), studentGrid = $('#studentGrid'), btnPickStudents = $('#btnPickStudents');
   const btnDictStart = $('#btnDictStart'), btnDictPause = $('#btnDictPause'), btnDictReveal = $('#btnDictReveal');
@@ -111,6 +112,8 @@
     hamburger.addEventListener('click', openSidebar);
     overlay.addEventListener('click', closeSidebar);
     document.addEventListener('keydown', onKeyDown);
+    btnClassroom.addEventListener('click', enterClassroomMode);
+    btnClassroomExit.addEventListener('click', exitClassroomMode);
     $('#btnImport').addEventListener('click', openImportModal);
     $('#btnImportCancel').addEventListener('click', closeImportModal);
     $('#btnImportSave').addEventListener('click', saveImport);
@@ -626,6 +629,8 @@
   let dictWordCount = 15, dictSeqMode = false, dictRange = 'all', dictSpeakCN = false;
   let dictationWords = [], dictationActive = false, dictPaused = false, dictGridEls = [];
   let dictPauseResolve = null;
+  const DICT_CN_GAP_MS = 1000;
+  const DICT_EN_GAP_MS = 1500;
 
   function getDictCounts() {
     try { return JSON.parse(localStorage.getItem('vocab-dict-counts') || '{}'); } catch(e) { return {}; }
@@ -787,14 +792,14 @@
 
       if (dictSpeakCN) {
         await speak(w.zh, 'zh-CN');
-        await delay(1800);
+        await delay(DICT_CN_GAP_MS);
         await speak(w.zh, 'zh-CN');
-        await delay(1800);
+        await delay(DICT_CN_GAP_MS);
       } else {
         await speak(w.en, 'en-US');
-        await delay(1500);
+        await delay(DICT_EN_GAP_MS);
         await speak(w.en, 'en-US');
-        await delay(1500);
+        await delay(DICT_EN_GAP_MS);
       }
 
       if (dictGridEls[i]) { dictGridEls[i].classList.remove('playing'); dictGridEls[i].classList.add('done'); }

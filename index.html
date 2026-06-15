@@ -70,6 +70,7 @@
       <div class="word-pos" id="wordPos"></div>
       <div class="word-zh" id="wordZh">选择单元后开始早读</div>
     </div>
+    <div class="audio-source-badge hidden" id="audioSourceBadge">语音来源：--</div>
 
     <div class="controls">
       <button class="ctrl-btn" id="btnPrev" disabled title="上一个 (←)">◂</button>
@@ -90,6 +91,7 @@
       <button class="tool-btn dict-btn-main" id="btnFavFilter" title="只看收藏"><span>星标</span><span class="fav-count hidden" id="favCountBadge">0</span></button>
       <button class="tool-btn dict-btn-main" id="btnWorksheet" title="默写单">默写单</button>
       <button class="tool-btn dict-btn-main" id="btnGame" title="单词连连看">连连看</button>
+      <button class="tool-btn dict-btn-main" id="btnClassroom" title="课堂模式">课堂</button>
       <div class="menu-wrap">
         <button class="tool-btn dict-btn-main" id="btnPrintExport" title="打印/导出">打印</button>
         <div id="printExportMenu" class="print-menu hidden-menu">
@@ -103,6 +105,7 @@
     <div class="word-list-panel" id="wordListPanel">
       <div class="empty-state">单词列表在此显示</div>
     </div>
+    <button class="classroom-exit hidden" id="btnClassroomExit">退出课堂模式</button>
 
     <div class="dictation-panel" id="dictationPanel">
       <div class="panel-header">
