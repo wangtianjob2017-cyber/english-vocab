@@ -108,11 +108,12 @@ def main():
 
         if AUDIO_DIR.exists():
             audio_files = {path.stem for path in AUDIO_DIR.glob("*.mp3")}
+            audio_files.update(path.stem for path in AUDIO_DIR.glob("*.wav"))
             missing_audio = [word for word in words if audio_name(word) not in audio_files]
             if missing_audio:
-                warnings.append(f"Entries missing local mp3: {len(missing_audio)} ({', '.join(missing_audio[:12])})")
-                report_lines += ["## Missing Local MP3", ""]
-                report_lines += [f"- `{audio_name(word)}.mp3` <- {word}" for word in missing_audio]
+                warnings.append(f"Entries missing local audio: {len(missing_audio)} ({', '.join(missing_audio[:12])})")
+                report_lines += ["## Missing Local Audio", ""]
+                report_lines += [f"- `{audio_name(word)}.mp3` or `{audio_name(word)}.wav` <- {word}" for word in missing_audio]
                 report_lines.append("")
         else:
             warnings.append("audio/ directory is absent; English playback will use TTS/fallback audio")

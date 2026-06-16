@@ -438,6 +438,19 @@
     return en.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '_').replace(/-/g, '_');
   }
 
+  function englishSpeechText(text) {
+    return text
+      .replace(/\.\.\./g, ' ')
+      .replace(/\bsb\/sth\b/gi, 'somebody or something')
+      .replace(/\bsb's\b/gi, "somebody's")
+      .replace(/\bsb\b/gi, 'somebody')
+      .replace(/\bsth\b/gi, 'something')
+      .replace(/\//g, ' or ')
+      .replace(/[()!,]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
   function tryPlayAudio(en) {
     return new Promise((resolve, reject) => {
       const baseName = audioFileName(en);
@@ -470,7 +483,7 @@
       if (lang === 'en-US') {
         tryPlayAudio(text).then(resolve).catch(() => {
           // Tier 2: speechSynthesis
-          speakWithTTS(text, lang, resolve);
+          speakWithTTS(englishSpeechText(text), lang, resolve);
         });
         return;
       }
@@ -504,7 +517,7 @@
     return new Promise(resolve => {
       let url;
       if (lang === 'en-US') {
-        url = 'https://dict.youdao.com/dictvoice?audio=' + encodeURIComponent(text) + '&type=0';
+        url = 'https://dict.youdao.com/dictvoice?audio=' + encodeURIComponent(englishSpeechText(text)) + '&type=0';
         setAudioSource('在线英文音频');
       } else {
         url = 'https://fanyi.baidu.com/gettts?lan=zh&text=' + encodeURIComponent(text) + '&spd=3&source=web';
