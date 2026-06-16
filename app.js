@@ -18,6 +18,7 @@
   const studentMaxId = $('#studentMaxId'), studentGrid = $('#studentGrid'), btnPickStudents = $('#btnPickStudents');
   const btnDictStart = $('#btnDictStart'), btnDictPause = $('#btnDictPause'), btnDictReveal = $('#btnDictReveal');
   const btnWorksheet = $('#btnWorksheet'), worksheetModalOverlay = $('#worksheetModalOverlay'), worksheetPreview = $('#worksheetPreview');
+  const updateBanner = $('#updateBanner'), btnUpdateNow = $('#btnUpdateNow');
   let wsMode = 'cn2en', wsSource = 'current';
   const progMiniText = $('#progMiniText');
   const favCountBadge = $('#favCountBadge');
@@ -115,6 +116,7 @@
     document.addEventListener('keydown', onKeyDown);
     btnClassroom.addEventListener('click', enterClassroomMode);
     btnClassroomExit.addEventListener('click', exitClassroomMode);
+    btnUpdateNow.addEventListener('click', () => location.reload());
     $('#btnImport').addEventListener('click', openImportModal);
     $('#btnImportCancel').addEventListener('click', closeImportModal);
     $('#btnImportSave').addEventListener('click', saveImport);
@@ -525,9 +527,9 @@
 
     const word = playlist[currentIndex];
     updateWordDisplay();
-    updateUI();
-    scrollToCurrent();
+    updateUI(false);
     highlightCurrentRow();
+    scrollToCurrent();
     updateCardStar();
 
     try {
@@ -553,8 +555,8 @@
         if (!isPlaying || gen !== speakGeneration) { speechPending = false; return; }
       }
 
-      const rows = $$('.word-row');
-      if (rows[currentIndex]) rows[currentIndex].classList.add('played');
+      const row = wordListPanel.querySelector(`.word-row[data-index="${currentIndex}"]`);
+      if (row) row.classList.add('played');
     } catch(e) {}
 
     speechPending = false;
@@ -601,7 +603,7 @@
     btnPrev.disabled = false; btnNext.disabled = false;
     wordCard.classList.add('active');
     speakGeneration++;
-    updateWordDisplay(); updateCardStar(); scrollToCurrent(); highlightCurrentRow(); updateUI();
+    updateWordDisplay(); updateCardStar(); updateUI(); highlightCurrentRow(); scrollToCurrent();
     speakCurrentWord(speakGeneration);
   }
   function pauseReading() {
@@ -616,7 +618,7 @@
     isPlaying = true; speechPending = false;
     btnPlay.innerHTML = '&#10074;&#10074;'; btnPlay.classList.add('pause');
     speakGeneration++;
-    wordCard.classList.add('active'); updateUI();
+    wordCard.classList.add('active'); updateUI(false); highlightCurrentRow(); scrollToCurrent();
     speakCurrentWord(speakGeneration);
   }
   function stopReading() {
@@ -640,7 +642,7 @@
     if (currentIndex < 0) currentIndex = 0;
     if (currentIndex >= playlist.length) currentIndex = playlist.length - 1;
     currentRepeat = 0;
-    updateWordDisplay(); updateCardStar(); scrollToCurrent(); highlightCurrentRow(); updateUI();
+    updateWordDisplay(); updateCardStar(); updateUI(); highlightCurrentRow(); scrollToCurrent();
     if (wp) { isPlaying = true; speakCurrentWord(speakGeneration); }
   }
   function jumpTo(index) {
@@ -648,7 +650,7 @@
     speakGeneration++;
     const wp = isPlaying; isPlaying = false;
     currentIndex = index; currentRepeat = 0;
-    updateWordDisplay(); updateCardStar(); highlightCurrentRow(); updateUI();
+    updateWordDisplay(); updateCardStar(); updateUI(); highlightCurrentRow(); scrollToCurrent();
     if (wp) { isPlaying = true; speakCurrentWord(speakGeneration); }
   }
 
@@ -1070,7 +1072,7 @@
   }
 
   // ===== UI =====
-  function updateUI() {
+  function updateUI(renderList = true) {
     const total = playlist.length;
     const hasWords = total > 0;
     btnStart.disabled = !hasWords;
@@ -1082,7 +1084,7 @@
     progressText.textContent = `${cur} / ${total}`;
     progressBar.style.width = hasWords && currentIndex >= 0 ? ((currentIndex + 1) / total * 100).toFixed(1) + '%' : '0%';
     wordListPanel.classList.toggle('cols-2', total > 45);
-    renderWordList();
+    if (renderList) renderWordList();
   }
 
   function updateWordDisplay() {
@@ -1207,7 +1209,18 @@
   }
   function scrollToCurrent() {
     const row = wordListPanel.querySelector(`.word-row[data-index="${currentIndex}"]`);
-    if (row) row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    if (!row) return;
+
+    const rows = Array.from(wordListPanel.querySelectorAll('.word-row'));
+    const rowIndex = rows.indexOf(row);
+    if (rowIndex < 0) return;
+
+    const anchorRow = rows[Math.max(0, rowIndex - 2)];
+    const panelTop = wordListPanel.getBoundingClientRect().top;
+    const anchorTop = anchorRow.getBoundingClientRect().top;
+    const targetTop = Math.max(0, wordListPanel.scrollTop + anchorTop - panelTop - 6);
+
+    wordListPanel.scrollTo({ top: targetTop, behavior: 'auto' });
   }
 
   // ===== Import / Export =====
@@ -1488,7 +1501,17 @@
 
   // ===== PWA Registration =====
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(err => console.warn('Service worker registration failed:', err));
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      reg.addEventListener('updatefound', () => {
+        const worker = reg.installing;
+        if (!worker) return;
+        worker.addEventListener('statechange', () => {
+          if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+            showEl(updateBanner, 'flex');
+          }
+        });
+      });
+    }).catch(err => console.warn('Service worker registration failed:', err));
   }
 
   init();

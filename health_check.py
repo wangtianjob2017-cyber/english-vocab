@@ -2,6 +2,7 @@
 """Lightweight project health checks for the vocabulary app."""
 
 from collections import Counter
+import argparse
 from pathlib import Path
 import re
 import sys
@@ -13,6 +14,7 @@ SYLLABLES = ROOT / "syllables.js"
 MANIFEST = ROOT / "manifest.json"
 SERVICE_WORKER = ROOT / "sw.js"
 AUDIO_DIR = ROOT / "audio"
+REPORT = ROOT / "reports" / "health-report.md"
 
 
 def audio_name(word):
@@ -50,8 +52,13 @@ def extract_entries(data_text):
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Run project health checks.")
+    parser.add_argument("--report", action="store_true", help="Write reports/health-report.md")
+    args = parser.parse_args()
+
     errors = []
     warnings = []
+    report_lines = ["# Health Report", ""]
 
     for path in [INDEX, DATA, SYLLABLES, MANIFEST]:
       if not path.exists():
@@ -91,6 +98,9 @@ def main():
         missing_phonetic = [entry["en"] for entry in entries if "phonetic:" not in entry["rest"]]
         if missing_phonetic:
             warnings.append(f"Entries missing phonetic: {len(missing_phonetic)} ({', '.join(missing_phonetic[:12])})")
+            report_lines += ["## Missing Phonetic", ""]
+            report_lines += [f"- {word}" for word in missing_phonetic]
+            report_lines.append("")
 
         missing_pos = [entry["en"] for entry in entries if "pos:" not in entry["rest"]]
         if missing_pos:
@@ -101,11 +111,22 @@ def main():
             missing_audio = [word for word in words if audio_name(word) not in audio_files]
             if missing_audio:
                 warnings.append(f"Entries missing local mp3: {len(missing_audio)} ({', '.join(missing_audio[:12])})")
+                report_lines += ["## Missing Local MP3", ""]
+                report_lines += [f"- `{audio_name(word)}.mp3` <- {word}" for word in missing_audio]
+                report_lines.append("")
         else:
             warnings.append("audio/ directory is absent; English playback will use TTS/fallback audio")
 
         print(f"Vocabulary entries: {len(entries)}")
         print(f"Unique English entries: {len(set(normalized))}")
+        report_lines[1:1] = [
+            "",
+            f"- Vocabulary entries: {len(entries)}",
+            f"- Unique English entries: {len(set(normalized))}",
+            f"- Warnings: {len(warnings)}",
+            f"- Errors: {len(errors)}",
+            "",
+        ]
 
     if warnings:
         print("\nWarnings:")
@@ -117,6 +138,13 @@ def main():
         for error in errors:
             print(f"  - {error}")
         return 1
+
+    if args.report:
+        REPORT.parent.mkdir(exist_ok=True)
+        if len(report_lines) <= 8:
+            report_lines += ["No outstanding data warnings.", ""]
+        REPORT.write_text("\n".join(report_lines), encoding="utf-8")
+        print(f"\nReport written: {REPORT.relative_to(ROOT)}")
 
     print("\nHealth check passed.")
     return 0

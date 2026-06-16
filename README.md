@@ -54,6 +54,12 @@
 python3 -B health_check.py
 ```
 
+生成 Markdown 检查报告：
+
+```bash
+python3 -B health_check.py --report
+```
+
 查看缺失音频：
 
 ```bash

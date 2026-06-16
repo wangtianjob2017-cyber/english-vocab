@@ -44,25 +44,72 @@ def safe_filename(word):
     name = name.replace('-', '_')
     return name + '.mp3'
 
+def tts_variants(word):
+    """Build TTS-friendly query variants while keeping the original filename."""
+    variants = []
+
+    def add(text):
+        text = re.sub(r'\s+', ' ', text).strip()
+        if text and text not in variants:
+            variants.append(text)
+
+    add(word)
+
+    cleaned = word
+    cleaned = cleaned.replace('...', ' ')
+    cleaned = cleaned.replace('sb/sth', 'somebody or something')
+    cleaned = cleaned.replace("sb's", "somebody's")
+    cleaned = re.sub(r'\bsb\b', 'somebody', cleaned)
+    cleaned = re.sub(r'\bsth\b', 'something', cleaned)
+    cleaned = cleaned.replace('/', ' or ')
+    cleaned = re.sub(r'[()!,]', ' ', cleaned)
+    add(cleaned)
+
+    without_optional = re.sub(r'\([^)]*\)', ' ', word)
+    without_optional = without_optional.replace('...', ' ')
+    without_optional = without_optional.replace("sb's", "somebody's")
+    without_optional = re.sub(r'\bsb\b', 'somebody', without_optional)
+    without_optional = re.sub(r'\bsth\b', 'something', without_optional)
+    without_optional = without_optional.replace('/', ' or ')
+    without_optional = re.sub(r'[!,]', ' ', without_optional)
+    add(without_optional)
+
+    simple = word
+    simple = simple.replace('...', ' ')
+    simple = re.sub(r'\([^)]*\)', ' ', simple)
+    simple = re.sub(r'\bsb\b|\bsth\b', 'someone', simple)
+    simple = re.sub(r'[/!,]', ' ', simple)
+    add(simple)
+
+    return variants
+
 def download_word(word, filepath):
     """Download MP3 audio from Youdao for a single word"""
-    encoded = urllib.parse.quote(word)
-    url = YOUDUO_URL.format(word=encoded)
+    last_error = None
+    for query in tts_variants(word):
+        encoded = urllib.parse.quote(query)
+        url = YOUDUO_URL.format(word=encoded)
 
-    try:
-        req = urllib.request.Request(url)
-        req.add_header('User-Agent', 'Mozilla/5.0')
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            if resp.status == 200:
-                data = resp.read()
-                if len(data) > 500:  # valid MP3 should be > 500 bytes
-                    with open(filepath, 'wb') as f:
-                        f.write(data)
-                    return True
-        return False
-    except Exception as e:
-        print(f"\n  ERROR '{word}': {e}")
-        return False
+        try:
+            req = urllib.request.Request(url)
+            req.add_header('User-Agent', 'Mozilla/5.0')
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                if resp.status == 200:
+                    data = resp.read()
+                    if len(data) > 500:  # valid MP3 should be > 500 bytes
+                        with open(filepath, 'wb') as f:
+                            f.write(data)
+                        if query != word:
+                            print(f"\n  OK '{word}' via '{query}'")
+                        return True
+        except Exception as e:
+            last_error = e
+
+    if last_error:
+        print(f"\n  ERROR '{word}': {last_error}")
+    else:
+        print(f"\n  ERROR '{word}': no valid audio returned")
+    return False
 
 def main():
     parser = argparse.ArgumentParser(description='Generate missing MP3 files for data.js words.')

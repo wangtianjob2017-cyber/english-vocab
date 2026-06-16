@@ -1,0 +1,140 @@
+# Health Report
+
+- Vocabulary entries: 2605
+- Unique English entries: 2588
+- Warnings: 2
+- Errors: 0
+
+
+## Missing Phonetic
+
+- schoolbag
+- maths
+- PE
+- Malee
+- well-used
+- T-shirt
+- sit-up
+- too...to
+- shuttlecock
+- colourful
+- from...to...
+- set...free
+- as...as...
+- km
+- kg
+- ginkgo
+- stir-fry
+- mix...with...
+- fill...with...
+- mini-goal
+- healthily
+- self-improvement
+- sci-fi
+- face-to-face
+- stomachache
+- toothache
+- X-ray
+- heatwave
+- Phuket
+- so...that
+- keep...off
+- sign-off
+- Ji-Hoon
+- Kaito
+- Türkiye
+- Dickon
+- e-payment
+- Irène
+- BCE
+- hands-on
+- e-book
+- HSK
+- one-size-fits-all
+- exoplanet
+- pull-up
+- shot-put
+- handoff
+- neither...nor...
+- bouldering
+- mooncake
+- couplet
+- Holi
+- artefact
+- world-famous
+- Kukulkan
+- brushstroke
+- combine...with...
+- cover...in
+- well-known
+- Hauptschule
+- Realschule
+
+## Missing Local MP3
+
+- `notat_all.mp3` <- not...at all
+- `malee.mp3` <- Malee
+- `be_late_for.mp3` <- be late (for)
+- `gongbao_chicken.mp3` <- Gongbao chicken
+- `take_sbs_breath_away.mp3` <- take sb's breath away
+- `ready_to_do_sth.mp3` <- ready to do sth
+- `fight_against_sbsth.mp3` <- fight against sb/sth
+- `congratulations_on.mp3` <- Congratulations (on...)!
+- `feel_free_to_do_sth.mp3` <- feel free (to do sth)
+- `be_connected_withto.mp3` <- be connected with/to
+- `play_a_part_in_sth.mp3` <- play a part (in sth)
+- `be_home_to_sbsth.mp3` <- be home to sb/sth
+- `cut_sth_ininto_sth.mp3` <- cut sth in/into sth
+- `along_with_sbsth.mp3` <- along with sb/sth
+- `have_to_do_with_sbsth.mp3` <- have (...) to do with sb/sth
+- `mini_goal.mp3` <- mini-goal
+- `depend_onupon.mp3` <- depend on/upon
+- `pay_attention_to.mp3` <- pay attention (to...)
+- `keep_away_from.mp3` <- keep (...) away from...
+- `stopfrom_doing.mp3` <- stop...from doing
+- `reduce_by_half.mp3` <- reduce by half
+- `put_oneself_in_sbs_shoes.mp3` <- put oneself in sb's shoes
+- `shut_sbsth_away.mp3` <- shut sb/sth away
+- `sothat.mp3` <- so...that
+- `keepoff.mp3` <- keep...off
+- `beget_used_to.mp3` <- be/get used to
+- `in_ones_forties.mp3` <- in one's forties
+- `ji_hoon.mp3` <- Ji-Hoon
+- `red_star_over_china.mp3` <- Red Star over China
+- `drop_out_of_sth.mp3` <- drop out (of sth)
+- `isambard_brunel.mp3` <- Isambard Brunel
+- `im_pei.mp3` <- I.M. Pei
+- `irne.mp3` <- Irène
+- `the_warring_states_period.mp3` <- the Warring States Period
+- `run_out_of_sth.mp3` <- run out (of sth)
+- `in_sbs_case.mp3` <- in sb's case
+- `divide_sth_into.mp3` <- divide sth into
+- `rick.mp3` <- Rick
+- `mini_.mp3` <- mini-
+- `hundreds_of.mp3` <- hundreds (of...)
+- `be_supposed_to_dobe_sth.mp3` <- be supposed to do/be sth
+- `responsible_for_sth.mp3` <- responsible for sth
+- `be_looking_to_do_sth.mp3` <- be looking to do sth
+- `alexander_bell.mp3` <- Alexander Bell
+- `spencer_silver.mp3` <- Spencer Silver
+- `voyager.mp3` <- Voyager
+- `hats_off_to_sb.mp3` <- hats off (to sb)
+- `dance_to.mp3` <- dance to
+- `make_up_ground_on_sbsth.mp3` <- make up ground on sb/sth
+- `eric_moussambani.mp3` <- Eric Moussambani
+- `tomb_sweeping_day.mp3` <- Tomb-sweeping Day
+- `sham_el_nessim.mp3` <- Sham El-Nessim
+- `queen.mp3` <- queen
+- `bringto_life.mp3` <- bring...to life
+- `millions_of.mp3` <- millions (of...)
+- `skilled_in.mp3` <- skilled in
+- `great_pyramid.mp3` <- Great Pyramid
+- `ct_scan.mp3` <- CT scan
+- `combinewith.mp3` <- combine...with...
+- `coverin.mp3` <- cover...in
+- `hong_kong_sar_china.mp3` <- Hong Kong SAR, China
+- `astor_garden_court.mp3` <- Astor Garden Court
+- `bearin_mind.mp3` <- bear...in mind
+- `from_the_bottom_of_ones_heart.mp3` <- from the (bottom of one's) heart
+- `worth_doing_sth.mp3` <- worth doing sth
+- `hauptschule.mp3` <- Hauptschule

@@ -53,6 +53,12 @@ Run health checks:
 python3 -B health_check.py
 ```
 
+Write a Markdown report:
+
+```bash
+python3 -B health_check.py --report
+```
+
 List missing audio:
 
 ```bash
