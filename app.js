@@ -130,7 +130,7 @@
     btnDictStart.addEventListener('click', () => { unlockAudio(); runDictation(); });
     btnDictPause.addEventListener('click', toggleDictPause);
     btnDictReveal.addEventListener('click', revealDictation);
-    btnDictReplay.addEventListener('click', () => runDictation(dictationWords));
+    btnDictReplay.addEventListener('click', () => { unlockAudio(); runDictation(dictationWords); });
     btnDictStarAll.addEventListener('click', starDictationWords);
     btnPickStudents.addEventListener('click', pickStudents);
     $('#btnDictClose').addEventListener('click', () => { dictationActive = false; dictationPanel.classList.remove('show'); });
@@ -215,6 +215,7 @@
     searchInput.addEventListener('keydown', (e) => { if (e.key === 'Escape') { searchInput.value = ''; renderWordList(); searchInput.blur(); } });
     cardStar.addEventListener('click', () => toggleFavorite(currentIndex));
     wordZh.addEventListener('click', () => { if (dictationMode && currentIndex >= 0) revealCurrentWord(); });
+    document.addEventListener('touchstart', unlockAudio, { once: true, passive: true });
 
     if (window.innerWidth <= 900) { hamburger.style.display = 'flex'; }
     window.addEventListener('resize', () => { hamburger.style.display = window.innerWidth <= 900 ? 'flex' : 'none'; });
@@ -482,6 +483,10 @@
       .trim();
   }
 
+  function isMobileAudioBrowser() {
+    return /iPhone|iPad|iPod|Android|Mobile|MicroMessenger/i.test(navigator.userAgent || '');
+  }
+
   function tryPlayAudio(en) {
     return new Promise((resolve, reject) => {
       const baseName = audioFileName(en);
@@ -537,8 +542,12 @@
       // Tier 1: local audio files (most stable, works offline)
       if (lang === 'en-US') {
         tryPlayAudio(text).then(resolve).catch(() => {
-          // Tier 2: speechSynthesis
-          speakWithTTS(englishSpeechText(text), lang, resolve);
+          if (isMobileAudioBrowser()) {
+            speakFallback(text, lang).then(resolve);
+          } else {
+            // Tier 2: speechSynthesis
+            speakWithTTS(englishSpeechText(text), lang, resolve);
+          }
         });
         return;
       }
