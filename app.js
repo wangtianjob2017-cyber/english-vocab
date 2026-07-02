@@ -91,8 +91,8 @@
 
     $('#btnSelectAll').addEventListener('click', () => { toggleAllUnits(true); closeSidebar(); });
     $('#btnDeselectAll').addEventListener('click', () => { toggleAllUnits(false); closeSidebar(); });
-    btnStart.addEventListener('click', () => { onStartStop(); closeSidebar(); });
-    btnPlay.addEventListener('click', onPlayPause);
+    btnStart.addEventListener('click', () => { unlockAudio(); onStartStop(); closeSidebar(); });
+    btnPlay.addEventListener('click', () => { unlockAudio(); onPlayPause(); });
     btnPrev.addEventListener('click', () => navigate(-1));
     btnNext.addEventListener('click', () => navigate(1));
     speedSlider.addEventListener('input', onSpeedChange);
@@ -127,7 +127,7 @@
     importTextarea.addEventListener('input', updateImportPreview);
     btnFavFilter.addEventListener('click', toggleFavFilter);
     btnDictation.addEventListener('click', startDictation);
-    btnDictStart.addEventListener('click', runDictation);
+    btnDictStart.addEventListener('click', () => { unlockAudio(); runDictation(); });
     btnDictPause.addEventListener('click', toggleDictPause);
     btnDictReveal.addEventListener('click', revealDictation);
     btnDictReplay.addEventListener('click', () => runDictation(dictationWords));
@@ -433,6 +433,37 @@
   // ===== Audio helpers =====
   const AUDIO_BASE = 'audio/';
   let audioCacheOk = new Set();
+  let audioUnlocked = false;
+
+  function unlockAudio() {
+    if (audioUnlocked) return;
+    audioUnlocked = true;
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (Ctx) {
+        const ctx = new Ctx();
+        if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+        const oscillator = ctx.createOscillator();
+        const gain = ctx.createGain();
+        gain.gain.value = 0.0001;
+        oscillator.connect(gain);
+        gain.connect(ctx.destination);
+        oscillator.start();
+        oscillator.stop(ctx.currentTime + 0.03);
+      }
+    } catch(e) {}
+    try {
+      const a = new Audio();
+      a.muted = true;
+      a.playsInline = true;
+      a.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQQAAAAAAA==';
+      a.play().then(() => {
+        a.pause();
+        a.removeAttribute('src');
+        a.load();
+      }).catch(() => {});
+    } catch(e) {}
+  }
 
   function audioFileName(en) {
     return en.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '_').replace(/-/g, '_');
@@ -456,8 +487,11 @@
       const baseName = audioFileName(en);
       let tryExt = '.mp3';
       const a = new Audio();
+      a.preload = 'auto';
+      a.playsInline = true;
       a.volume = 1; a.playbackRate = speed;
       let resolved = false;
+      let playStarted = false;
       const finish = (ok) => {
         if (resolved) return;
         resolved = true;
@@ -466,14 +500,35 @@
         if (ok) { audioCacheOk.add(en.toLowerCase()); setAudioSource('本地音频'); resolve(); }
         else reject();
       };
+      const startPlayback = () => {
+        if (resolved || playStarted) return;
+        playStarted = true;
+        a.play().then(() => {
+          setAudioSource('本地音频');
+        }).catch(() => {
+          playStarted = false;
+        });
+      };
       let t = setTimeout(() => finish(false), 12000);
       a.onended = () => finish(true);
       a.onerror = () => {
-        if (tryExt === '.mp3') { tryExt = '.wav'; a.src = AUDIO_BASE + baseName + tryExt; return; }
+        if (tryExt === '.mp3') {
+          tryExt = '.wav';
+          playStarted = false;
+          a.src = AUDIO_BASE + baseName + tryExt;
+          a.load();
+          setTimeout(startPlayback, 60);
+          return;
+        }
         finish(false);
       };
-      a.oncanplaythrough = () => { a.play().catch(() => finish(false)); };
+      a.onloadedmetadata = startPlayback;
+      a.oncanplay = startPlayback;
+      a.oncanplaythrough = startPlayback;
+      a.onplaying = () => setAudioSource('本地音频');
       a.src = AUDIO_BASE + baseName + tryExt;
+      a.load();
+      setTimeout(startPlayback, 60);
     });
   }
 
