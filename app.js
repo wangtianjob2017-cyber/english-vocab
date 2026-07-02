@@ -490,48 +490,55 @@
   function tryPlayAudio(en) {
     return new Promise((resolve, reject) => {
       const baseName = audioFileName(en);
-      let tryExt = '.mp3';
+      const audioExts = ['.mp3', '.m4a', '.wav'];
+      let extIndex = 0;
       const a = new Audio();
       a.preload = 'auto';
       a.playsInline = true;
       a.volume = 1; a.playbackRate = speed;
       let resolved = false;
       let playStarted = false;
+      let t = null;
       const finish = (ok) => {
         if (resolved) return;
         resolved = true;
-        clearTimeout(t);
+        if (t) clearTimeout(t);
         a.pause(); a.removeAttribute('src'); a.load();
         if (ok) { audioCacheOk.add(en.toLowerCase()); setAudioSource('本地音频'); resolve(); }
         else reject();
+      };
+      const tryNextSource = () => {
+        if (resolved) return;
+        extIndex++;
+        playStarted = false;
+        if (extIndex >= audioExts.length) {
+          finish(false);
+          return;
+        }
+        if (t) clearTimeout(t);
+        a.src = AUDIO_BASE + baseName + audioExts[extIndex];
+        a.load();
+        t = setTimeout(tryNextSource, 2600);
+        setTimeout(startPlayback, 60);
       };
       const startPlayback = () => {
         if (resolved || playStarted) return;
         playStarted = true;
         a.play().then(() => {
+          if (t) clearTimeout(t);
           setAudioSource('本地音频');
         }).catch(() => {
-          playStarted = false;
+          tryNextSource();
         });
       };
-      let t = setTimeout(() => finish(false), 12000);
+      t = setTimeout(tryNextSource, 2600);
       a.onended = () => finish(true);
-      a.onerror = () => {
-        if (tryExt === '.mp3') {
-          tryExt = '.wav';
-          playStarted = false;
-          a.src = AUDIO_BASE + baseName + tryExt;
-          a.load();
-          setTimeout(startPlayback, 60);
-          return;
-        }
-        finish(false);
-      };
+      a.onerror = tryNextSource;
       a.onloadedmetadata = startPlayback;
       a.oncanplay = startPlayback;
       a.oncanplaythrough = startPlayback;
       a.onplaying = () => setAudioSource('本地音频');
-      a.src = AUDIO_BASE + baseName + tryExt;
+      a.src = AUDIO_BASE + baseName + audioExts[extIndex];
       a.load();
       setTimeout(startPlayback, 60);
     });

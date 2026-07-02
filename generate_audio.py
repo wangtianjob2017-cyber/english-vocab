@@ -89,6 +89,10 @@ def wav_filename(word):
     """Convert a word/phrase to a safe WAV filename"""
     return safe_stem(word) + '.wav'
 
+def m4a_filename(word):
+    """Convert a word/phrase to a safe M4A filename"""
+    return safe_stem(word) + '.m4a'
+
 def tts_variants(word):
     """Build TTS-friendly query variants while keeping the original filename."""
     variants = []
@@ -167,7 +171,7 @@ def macos_say_text(word):
     return word
 
 def generate_word_with_macos_say(word, filepath):
-    """Generate a local WAV fallback with macOS say + afconvert."""
+    """Generate a local audio fallback with macOS say + afconvert."""
     if not shutil.which('say') or not shutil.which('afconvert'):
         return False
 
@@ -186,12 +190,11 @@ def generate_word_with_macos_say(word, filepath):
         else:
             return False
 
-        result = subprocess.run(
-            ['afconvert', '-f', 'WAVE', '-d', 'LEI16', tmp_aiff, filepath],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            timeout=30,
-        )
+        if filepath.endswith('.m4a'):
+            convert_cmd = ['afconvert', '-f', 'm4af', '-d', 'aac', tmp_aiff, filepath]
+        else:
+            convert_cmd = ['afconvert', '-f', 'WAVE', '-d', 'LEI16', tmp_aiff, filepath]
+        result = subprocess.run(convert_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30)
         if result.returncode == 0 and os.path.exists(filepath) and os.path.getsize(filepath) > 500:
             print(f"\n  OK '{word}' via macOS say: '{text}'")
             return True
@@ -218,10 +221,11 @@ def main():
     to_generate = []
     for word in words:
         mp3_name = safe_filename(word)
+        m4a_name = m4a_filename(word)
         wav_name = wav_filename(word)
-        if mp3_name in existing or wav_name in existing:
+        if mp3_name in existing or m4a_name in existing or wav_name in existing:
             continue
-        to_generate.append((word, mp3_name, wav_name))
+        to_generate.append((word, mp3_name, m4a_name, wav_name))
 
     if not to_generate:
         print("All audio files already exist!")
@@ -229,8 +233,8 @@ def main():
 
     if args.dry_run:
         print(f"Missing {len(to_generate)} local audio files:")
-        for word, mp3_name, wav_name in to_generate:
-            print(f"  {mp3_name} or {wav_name}  <-  {word}")
+        for word, mp3_name, m4a_name, wav_name in to_generate:
+            print(f"  {mp3_name} or {m4a_name} or {wav_name}  <-  {word}")
         return
 
     print(f"Downloading {len(to_generate)} MP3s from Youdao (有道), then using macOS say for failures...")
@@ -239,16 +243,16 @@ def main():
 
     success = 0
     failed = 0
-    wav_success = 0
+    fallback_success = 0
 
-    for i, (word, mp3_name, wav_name) in enumerate(to_generate):
+    for i, (word, mp3_name, m4a_name, wav_name) in enumerate(to_generate):
         filepath = os.path.join(AUDIO_DIR, mp3_name)
         ok = download_word(word, filepath)
         if not ok:
-            wav_path = os.path.join(AUDIO_DIR, wav_name)
-            ok = generate_word_with_macos_say(word, wav_path)
+            fallback_path = os.path.join(AUDIO_DIR, m4a_name)
+            ok = generate_word_with_macos_say(word, fallback_path)
             if ok:
-                wav_success += 1
+                fallback_success += 1
         if ok:
             success += 1
         else:
@@ -264,7 +268,7 @@ def main():
 
     print()
     print()
-    print(f"Done! {success} local audio files created ({wav_success} WAV fallback), {failed} failed.")
+    print(f"Done! {success} local audio files created ({fallback_success} local fallback), {failed} failed.")
     print(f"Audio files in: {os.path.abspath(AUDIO_DIR)}/")
 
 if __name__ == '__main__':
